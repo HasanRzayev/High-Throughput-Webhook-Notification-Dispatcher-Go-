@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webhook Dispatcher - Go Microservice Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #f8fafc;
+            --bg-surface: #ffffff;
+            --border-subtle: #e2e8f0;
+            --border-strong: #cbd5e1;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --primary-light: #eef2ff;
+            --emerald: #059669;
+            --emerald-light: #ecfdf5;
+            --amber: #d97706;
+            --amber-light: #fffbeb;
+            --rose: #e11d48;
+            --rose-light: #fff1f2;
+            --text-heading: #0f172a;
+            --text-body: #334155;
+            --text-muted: #64748b;
+            --font-main: 'Plus Jakarta Sans', -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+            --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
+            --radius-md: 12px;
+            --radius-lg: 16px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-base);
+            color: var(--text-body);
+            line-height: 1.5;
+            padding: 32px 24px;
+            min-height: 100vh;
+        }
+
+        .container { max-width: 1280px; margin: 0 auto; }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-surface);
+            padding: 20px 28px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-subtle);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 28px;
+        }
+
+        .brand-group {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 1.25rem;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);
+        }
+
+        .brand-titles h1 {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--text-heading);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .badge-go {
+            background: #00add8;
+            color: #ffffff;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 6px;
+            letter-spacing: 0.02em;
+        }
+
+        .brand-titles p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: #f1f5f9;
+            color: var(--text-heading);
+            text-decoration: none;
+            font-size: 0.825rem;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .nav-pill:hover {
+            background: #e2e8f0;
+            border-color: var(--border-strong);
+        }
+
+        .nav-pill.highlight {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .nav-pill.highlight:hover {
+            background: #e0e7ff;
+        }
+
+        /* Metric Cards */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 20px 22px;
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+        }
+
+        .stat-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .stat-indicator.green { background: var(--emerald); box-shadow: 0 0 0 3px var(--emerald-light); }
+        .stat-indicator.blue { background: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+        .stat-indicator.amber { background: var(--amber); box-shadow: 0 0 0 3px var(--amber-light); }
+        .stat-indicator.red { background: var(--rose); box-shadow: 0 0 0 3px var(--rose-light); }
+
+        .stat-value {
+            font-size: 1.85rem;
+            font-weight: 800;
+            color: var(--text-heading);
+            font-family: var(--font-mono);
+        }
+
+        .stat-caption {
+            font-size: 0.775rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        /* Layout Grid */
+        .workspace-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 28px;
+        }
+
+        @media (max-width: 980px) {
+            .workspace-grid { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-heading);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: #f1f5f9;
+            color: var(--text-muted);
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+
+        /* Forms */
+        .form-row {
+            margin-bottom: 16px;
+        }
+
+        .form-row.double {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.825rem;
+            font-weight: 600;
+            color: var(--text-heading);
+            margin-bottom: 6px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px 14px;
+            background: #ffffff;
+            border: 1px solid var(--border-strong);
+            border-radius: 8px;
+            color: var(--text-heading);
+            font-size: 0.875rem;
+            font-family: var(--font-main);
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        textarea {
+            font-family: var(--font-mono);
+            font-size: 0.825rem;
+            resize: vertical;
+            line-height: 1.45;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+        }
+
+        .actions-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: var(--primary);
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 0.875rem;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-ghost {
+            background: #f1f5f9;
+            color: var(--text-heading);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .btn-ghost:hover {
+            background: #e2e8f0;
+            color: var(--text-heading);
+        }
+
+        .btn-danger-sm {
+            background: var(--rose-light);
+            color: var(--rose);
+            font-size: 0.775rem;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(225, 29, 72, 0.2);
+        }
+
+        .btn-danger-sm:hover {
+            background: var(--rose);
+            color: #ffffff;
+        }
+
+        .btn-preset {
+            font-size: 0.775rem;
+            padding: 6px 10px;
+            background: #f8fafc;
+            border: 1px solid var(--border-subtle);
+            color: var(--text-body);
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.15s;
+        }
+
+        .btn-preset:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+            border-color: rgba(79, 70, 229, 0.2);
+        }
+
+        .preset-container {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+            margin-bottom: 12px;
+        }
+
+        /* Tables */
+        .table-responsive {
+            overflow-x: auto;
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: left;
+            background: #ffffff;
+        }
+
+        thead {
+            background: #f8fafc;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        th {
+            padding: 12px 16px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-body);
+            vertical-align: middle;
+        }
+
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover { background: #fafbfc; }
+
+        code {
+            font-family: var(--font-mono);
+            font-size: 0.775rem;
+            background: #f1f5f9;
+            color: var(--primary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 500;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        /* Pills */
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 9px;
+            border-radius: 9999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .pill.active { background: var(--emerald-light); color: var(--emerald); border: 1px solid rgba(5, 150, 105, 0.2); }
+        .pill.failed { background: var(--rose-light); color: var(--rose); border: 1px solid rgba(225, 29, 72, 0.2); }
+        .pill.retrying { background: var(--amber-light); color: var(--amber); border: 1px solid rgba(217, 119, 6, 0.2); }
+        .pill.pending { background: var(--primary-light); color: var(--primary); border: 1px solid rgba(79, 70, 229, 0.2); }
+
+        /* Toast */
+        #toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #0f172a;
+            color: #ffffff;
+            padding: 14px 22px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            display: none;
+            box-shadow: var(--shadow-lg);
+            z-index: 1000;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="brand-group">
+                <div class="logo-icon">⚡</div>
+                <div class="brand-titles">
+                    <h1>Webhook Dispatcher <span class="badge-go">Go 1.23+</span></h1>
+                    <p>High-Concurrency Payment & Game Event Delivery Microservice</p>
+                </div>
+            </div>
+            <div class="nav-links">
+                <a href="/metrics" target="_blank" class="nav-pill highlight">📊 Prometheus Metrics</a>
+                <a href="/healthz" target="_blank" class="nav-pill">💚 Healthz</a>
+                <a href="/api/v1/endpoints" target="_blank" class="nav-pill">🔌 Endpoints API</a>
+                <a href="/api/v1/dlq" target="_blank" class="nav-pill">💀 DLQ JSON</a>
+            </div>
+        </header>
+
+        <!-- Metrics Overview -->
+        <div class="metrics-grid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-label">System Health</span>
+                    <span class="stat-indicator green"></span>
+                </div>
+                <div class="stat-value" style="color: var(--emerald);">ONLINE</div>
+                <div class="stat-caption">gRPC (:50051) & HTTP (:8080)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-label">Worker Concurrency</span>
+                    <span class="stat-indicator blue"></span>
+                </div>
+                <div class="stat-value" style="color: var(--primary);" id="stat-workers">50 Pool</div>
+                <div class="stat-caption">Buffered channel size: 10,000</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-label">Registered Targets</span>
+                    <span class="stat-indicator amber"></span>
+                </div>
+                <div class="stat-value" id="stat-endpoints">0</div>
+                <div class="stat-caption">Active studio webhook URLs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-label">Dead Letter Queue</span>
+                    <span class="stat-indicator red"></span>
+                </div>
+                <div class="stat-value" style="color: var(--rose);" id="stat-dlq">0</div>
+                <div class="stat-caption">Events exhausted max retries</div>
+            </div>
+        </div>
+
+        <!-- Main Workspace -->
+        <div class="workspace-grid">
+            <!-- Panel 1: Register Endpoint -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <span>🎯 1. Register Webhook Endpoint</span>
+                    </div>
+                    <span class="panel-badge">REST API</span>
+                </div>
+                <form id="form-endpoint">
+                    <div class="form-row">
+                        <label>Tenant ID (Game Studio / Partner)</label>
+                        <input type="text" id="ep-tenant" value="studio-epic-games" required>
+                    </div>
+
+                    <div class="form-row double">
+                        <div>
+                            <label>Event Type</label>
+                            <select id="ep-type">
+                                <option value="payment.completed">payment.completed</option>
+                                <option value="game.loot_drop">game.loot_drop</option>
+                                <option value="order.refunded">order.refunded</option>
+                                <option value="*">* (Wildcard - All events)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Rate Limit (req / sec)</label>
+                            <input type="number" id="ep-rate" value="100">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <label>Target Webhook URL</label>
+                        <input type="url" id="ep-url" value="http://localhost:9090/webhook" required>
+                    </div>
+
+                    <div class="form-row">
+                        <label>HMAC-SHA256 Secret Key</label>
+                        <input type="text" id="ep-secret" value="mock-secret-key-12345">
+                    </div>
+
+                    <div class="actions-group">
+                        <button type="submit">Register Endpoint</button>
+                        <button type="button" class="btn-ghost" onclick="setMockReceiver()">Set to Mock Receiver</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Panel 2: Live Dispatch Simulator -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <span>⚡ 2. Dispatch Live Webhook Event</span>
+                    </div>
+                    <span class="panel-badge">Worker Pool Trigger</span>
+                </div>
+                <form id="form-dispatch">
+                    <div class="form-row double">
+                        <div>
+                            <label>Tenant ID</label>
+                            <input type="text" id="ev-tenant" value="studio-epic-games" required>
+                        </div>
+                        <div>
+                            <label>Event Type</label>
+                            <select id="ev-type" onchange="updatePayloadPreset()">
+                                <option value="payment.completed">payment.completed</option>
+                                <option value="game.loot_drop">game.loot_drop</option>
+                                <option value="order.refunded">order.refunded</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <label>Quick Presets</label>
+                        <div class="preset-container">
+                            <span class="btn-preset" onclick="setPreset('payment')">💳 Payment $49.99</span>
+                            <span class="btn-preset" onclick="setPreset('loot')">⚔️ Mythic Sword Drop</span>
+                            <span class="btn-preset" onclick="setPreset('refund')">🔄 Flaky Refund Event</span>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <label>JSON Payload</label>
+                        <textarea id="ev-payload" rows="6">{
+  "payment_id": "pay_987654",
+  "player_id": "usr_alpha_77",
+  "amount": 49.99,
+  "currency": "USD",
+  "status": "completed"
+}</textarea>
+                    </div>
+
+                    <div class="actions-group">
+                        <button type="submit">Dispatch Event ⚡</button>
+                        <button type="button" class="btn-ghost" onclick="randomizePayload()">Randomize</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Table 1: Registered Endpoints -->
+        <div class="panel" style="margin-bottom: 28px;">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span>📋 Registered Webhook Endpoints</span>
+                </div>
+                <span class="panel-badge" id="count-endpoints-badge">0 configured</span>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Endpoint ID</th>
+                            <th>Tenant ID</th>
+                            <th>Event Type</th>
+                            <th>Target URL</th>
+                            <th>Rate Limit</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-endpoints">
+                        <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">Loading endpoints...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Table 2: Dead Letter Queue -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <span>💀 Dead Letter Queue (DLQ)</span>
+                </div>
+                <span class="panel-badge" id="count-dlq-badge">0 items</span>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Event ID</th>
+                            <th>Tenant</th>
+                            <th>Event Type</th>
+                            <th>Attempts</th>
+                            <th>Last Status</th>
+                            <th>Last Error</th>
+                            <th>Replayed</th>
+                            <th>Manual Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-dlq">
+                        <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 24px;">Dead Letter Queue is empty. All deliveries acknowledged!</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast">Action completed successfully</div>
+
+    <script>
+        function showToast(msg, isError) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.style.background = isError ? '#e11d48' : '#0f172a';
+            toast.style.display = 'block';
+            setTimeout(function() { toast.style.display = 'none'; }, 3200);
+        }
+
+        async function fetchEndpoints() {
+            try {
+                const res = await fetch('/api/v1/endpoints');
+                const list = await res.json() || [];
+                document.getElementById('stat-endpoints').innerText = list.length;
+                document.getElementById('count-endpoints-badge').innerText = list.length + ' configured';
+                const tbody = document.getElementById('table-endpoints');
+                if (list.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:24px;">No webhook targets registered yet. Register your first endpoint above!</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = list.map(function(ep) {
+                    return '<tr>' +
+                        '<td><code>' + ep.id.substring(0, 8) + '...</code></td>' +
+                        '<td><strong>' + ep.tenant_id + '</strong></td>' +
+                        '<td><code>' + ep.event_type + '</code></td>' +
+                        '<td style="font-family:var(--font-mono); font-size:0.8rem;">' + ep.target_url + '</td>' +
+                        '<td>' + ep.rate_limit_per_sec + ' req/s</td>' +
+                        '<td><span class="pill active">ACTIVE</span></td>' +
+                    '</tr>';
+                }).join('');
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        async function fetchDLQ() {
+            try {
+                const res = await fetch('/api/v1/dlq');
+                const list = await res.json() || [];
+                document.getElementById('stat-dlq').innerText = list.length;
+                document.getElementById('count-dlq-badge').innerText = list.length + ' failed events';
+                const tbody = document.getElementById('table-dlq');
+                if (list.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:24px;">Dead Letter Queue is empty. All deliveries acknowledged!</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = list.map(function(item) {
+                    return '<tr>' +
+                        '<td><code>' + item.event_id + '</code></td>' +
+                        '<td><strong>' + item.tenant_id + '</strong></td>' +
+                        '<td><code>' + item.event_type + '</code></td>' +
+                        '<td>' + item.total_attempts + ' / 5</td>' +
+                        '<td><span class="pill failed">' + (item.last_status_code || 'ERR') + '</span></td>' +
+                        '<td style="color:var(--rose); font-size:0.8rem; max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + (item.last_error_message || 'Timeout') + '</td>' +
+                        '<td>' + (item.replayed ? '<span class="pill active">YES</span>' : '<span class="pill retrying">NO</span>') + '</td>' +
+                        '<td><button class="btn-danger-sm" onclick="replayDLQ(\'' + item.event_id + '\')">Replay ↺</button></td>' +
+                    '</tr>';
+                }).join('');
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        async function replayDLQ(id) {
+            try {
+                const res = await fetch('/api/v1/dlq/' + id + '/replay', { method: 'POST' });
+                if (res.ok) {
+                    showToast('DLQ Event re-enqueued for delivery!');
+                    fetchDLQ();
+                } else {
+                    showToast('Failed to replay DLQ item', true);
+                }
+            } catch(e) {
+                showToast(e.message, true);
+            }
+        }
+
+        document.getElementById('form-endpoint').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const data = {
+                tenant_id: document.getElementById('ep-tenant').value,
+                event_type: document.getElementById('ep-type').value,
+                target_url: document.getElementById('ep-url').value,
+                secret_key: document.getElementById('ep-secret').value,
+                rate_limit_per_sec: parseInt(document.getElementById('ep-rate').value)
+            };
+            const res = await fetch('/api/v1/endpoints', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                showToast('Webhook endpoint registered successfully!');
+                fetchEndpoints();
+            } else {
+                showToast('Failed to register endpoint', true);
+            }
+        });
+
+        document.getElementById('form-dispatch').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const data = {
+                tenant_id: document.getElementById('ev-tenant').value,
+                event_type: document.getElementById('ev-type').value,
+                payload: document.getElementById('ev-payload').value
+            };
+            const res = await fetch('/api/v1/dispatch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            if (res.ok) {
+                const json = await res.json();
+                showToast('Event ' + json.event_id + ' dispatched to worker pool!');
+                setTimeout(fetchDLQ, 1200);
+            } else {
+                showToast('Dispatch failed', true);
+            }
+        });
+
+        function setMockReceiver() {
+            document.getElementById('ep-url').value = 'http://localhost:9090/webhook';
+            document.getElementById('ep-secret').value = 'mock-secret-key-12345';
+        }
+
+        function setPreset(type) {
+            const num = Math.floor(Math.random() * 90000) + 10000;
+            if (type === 'payment') {
+                document.getElementById('ev-type').value = 'payment.completed';
+                document.getElementById('ev-payload').value = JSON.stringify({
+                    payment_id: "pay_" + num,
+                    player_id: "player_99",
+                    amount: 49.99,
+                    currency: "USD",
+                    status: "completed"
+                }, null, 2);
+            } else if (type === 'loot') {
+                document.getElementById('ev-type').value = 'game.loot_drop';
+                document.getElementById('ev-payload').value = JSON.stringify({
+                    drop_id: "loot_" + num,
+                    item_name: "Mythic Dragon Slayer Blade",
+                    rarity: "legendary",
+                    player_id: "player_42"
+                }, null, 2);
+            } else if (type === 'refund') {
+                document.getElementById('ev-type').value = 'order.refunded';
+                document.getElementById('ev-payload').value = JSON.stringify({
+                    refund_id: "ref_" + num,
+                    reason: "customer_dispute",
+                    amount: 19.99,
+                    timestamp: new Date().toISOString()
+                }, null, 2);
+            }
+        }
+
+        function updatePayloadPreset() {
+            const val = document.getElementById('ev-type').value;
+            if (val === 'payment.completed') setPreset('payment');
+            else if (val === 'game.loot_drop') setPreset('loot');
+            else if (val === 'order.refunded') setPreset('refund');
+        }
+
+        function randomizePayload() {
+            const num = Math.floor(Math.random() * 90000) + 10000;
+            document.getElementById('ev-payload').value = JSON.stringify({
+                event_sequence: num,
+                game_session_id: "sess_" + (num % 100),
+                amount: (Math.random() * 120).toFixed(2),
+                currency: "USD",
+                dispatched_at: new Date().toISOString()
+            }, null, 2);
+        }
+
+        fetchEndpoints();
+        fetchDLQ();
+        setInterval(fetchDLQ, 3000);
+    </script>
+</body>
+</html>

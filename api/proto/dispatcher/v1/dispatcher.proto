@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package dispatcher.v1;
+
+option go_package = "webhook-dispatcher/api/proto/dispatcher/v1;dispatcherv1";
+
+// DispatcherService defines the internal high-throughput event ingestion contract.
+service DispatcherService {
+  // DispatchEvent accepts a game or payment event, validates/persists it, and enqueues for async delivery.
+  rpc DispatchEvent(EventRequest) returns (EventResponse);
+}
+
+message EventRequest {
+  string event_id = 1;
+  string tenant_id = 2;
+  string event_type = 3;
+  bytes payload = 4; // Raw JSON payload
+}
+
+message EventResponse {
+  string event_id = 1;
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_ACCEPTED = 1;
+    STATUS_DUPLICATE = 2;
+    STATUS_REJECTED = 3;
+  }
+  Status status = 2;
+  string message = 3;
+  int64 accepted_at_unix_ms = 4;
+}
